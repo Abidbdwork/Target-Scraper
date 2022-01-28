@@ -1,7 +1,6 @@
 import json
 import re
 import html2text
-import requests
 import scrapy
 
 
