@@ -1,5 +1,10 @@
 ﻿# assigenmet_abid
 This one scrape data using api
+## Requirements
+    
+    $ pip install scrapy
+    $ pip install html2text
+
 
 ## Running the spiders
 
