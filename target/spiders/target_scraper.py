@@ -84,6 +84,3 @@ class TargetScraper(scrapy.Spider):
     def Product_Details_Url(self, Product_Id, Api_Key):
         return f"https://redsky.target.com/redsky_aggregations/v1/web/pdp_client_v1?tcin={Product_Id}&pricing_store_id=3991&key={Api_Key}"
 
-
-if __name__ == "__main__":
-    sc = TargetScraper()
