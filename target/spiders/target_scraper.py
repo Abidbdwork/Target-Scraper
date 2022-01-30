@@ -2,23 +2,16 @@ import json
 import re
 import html2text
 import scrapy
-from target import items
 
 
 class TargetScraper(scrapy.Spider):
     name = "target"
     start_urls = ['https://www.target.com/p/apple-iphone-13-pro-max/-/A-84616123?preselect=84240109#lnk=sametab']
 
-    def __init__(self):
-        self.item = items.TargetItem()
-        self.api_keys = []
-        self.product_ids = {}
-        self.api_key_in = 0
-
     def parse(self, response):
         self.api_keys = self.Api_Key_Parser(response)
         self.product_ids = self.Url_To_ProductId(response.url)
-
+        self.api_key_in = 0
         yield scrapy.Request(self.Product_Details_Url(self.product_ids['product_id'], self.api_keys[self.api_key_in]),
                              callback=self.Product_Details_Parser)
 
@@ -28,12 +21,14 @@ class TargetScraper(scrapy.Spider):
         questions = None
         if results:
             questions = [q['text'] for q in results if q.get('text')]
-        self.item["questions"] = questions
-        yield self.item
+        print("questions:-------->", questions)
+        return {"questions": questions}
 
     def Product_Details_Parser(self, Response):
+        # print("Product Details parser:---", json.loads(response.url))
         Selected_id = self.product_ids.get('s_product')
         product_json = json.loads(Response.text)
+        print(product_json)
         product_info = product_json['data']['product'].get('children', {})
         if product_info and Selected_id:
             for info in product_info:
@@ -42,7 +37,6 @@ class TargetScraper(scrapy.Spider):
                     break
         elif product_info and Selected_id is None:
             product_info = product_info[0]
-
         product_dsh = product_info.get('item', {}).get('product_description', {})
         specifications = '\n'.join([html2text.html2text(line) for line in product_dsh.get('bullet_descriptions', [])])
         title = product_dsh.get('title')
@@ -51,14 +45,18 @@ class TargetScraper(scrapy.Spider):
         price = product_info.get('price', {}).get('current_retail')
         images = product_info.get('item', {}).get('enrichment', {}).get('images', {}).get('content_labels')
         image_urls = [url.get('image_url') for url in images]
-        self.item['title'] = title
-        self.item['image_urls'] = image_urls
-        self.item['price'] = price
-        self.item['description'] = description
-        self.item['highlights'] = highlights
-        self.item['specifications'] = specifications
+        print("Title:-------->", title)
+        print("Images:-------->", image_urls)
+        print("price:-------->", price)
+        print("Description:-------->", description)
+        print("Highlights:-------->", highlights)
+        print("Specifications:-------->", specifications)
+        print(self.product_ids, self.api_keys[self.api_key_in])
         qa_url = self.QA_Url(self.product_ids['product_id'], self.api_keys[self.api_key_in])
         yield scrapy.Request(qa_url, callback=self.QA_Parser)
+        yield {'title': title, "image_urls": image_urls, 'price': price, 'description': description,
+               'highlights': highlights,
+               'specifications': specifications}
 
     def Api_Key_Parser(self, Response):
         Pattern = r"(?:\"apikey\":\B.\w+\W)"
@@ -85,3 +83,7 @@ class TargetScraper(scrapy.Spider):
 
     def Product_Details_Url(self, Product_Id, Api_Key):
         return f"https://redsky.target.com/redsky_aggregations/v1/web/pdp_client_v1?tcin={Product_Id}&pricing_store_id=3991&key={Api_Key}"
+
+
+if __name__ == "__main__":
+    sc = TargetScraper()
